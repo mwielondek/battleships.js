@@ -1,17 +1,21 @@
 <html>
 <head>
     <link rel="stylesheet" type="text/css" href="style.css">
+    <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
+    <script type="text/javascript" src="script.js"></script>
 </head>
 <body>
-    <script type="text/javascript">
-    GRID_SIZE = 9;
-    for(i = 0; i < GRID_SIZE; i++) {
-        document.write('<div class="row">');
-        for(j = 0; j < GRID_SIZE; j++) {
-            document.write('<span class="cell">'+i+j+'</span>');
-        } 
-        document.write('</div>');
-    }
-    </script>
+    <input type="text" id="displayID" /><br />
+    <div id="container">
+        <script type="text/javascript">
+            for(i = 0; i < GRID_SIZE; i++) {
+                document.write('<div class="row">');
+                for(j = 0; j < GRID_SIZE; j++) {
+                    document.write('<span class="cell" id="'+i+j+'"></span>');
+                } 
+                document.write('</div>');
+            }
+        </script>
+    </div>
 </body>
 </html>
