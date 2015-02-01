@@ -8,6 +8,21 @@ div#container {
     text-align: left;
 }
 
+div#battlegrid {
+    display: inline-block;
+    border: 1px solid black;
+}
+
+div#controls {
+    border: 1px solid black;
+    float: right;
+    display: inline-block;
+    width: 150px;
+    height: 200px;
+    margin-left: 30px;
+    padding: 10px;
+}
+
 span.cell {
     border: 1px solid black;
     display: inline-block;
@@ -23,6 +38,15 @@ span.hit {
     background-color: red;
 }
 
-input#displayID {
-    width: 20px;
+span.marked {
+    background-color: gray;
+}
+
+.strikeout {
+    color: green;
+    text-decoration: line-through;
+}
+
+button {
+    width: 100%;
 }
