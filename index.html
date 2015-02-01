@@ -1,0 +1,17 @@
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+    <script type="text/javascript">
+    GRID_SIZE = 9;
+    for(i = 0; i < GRID_SIZE; i++) {
+        document.write('<div class="row">');
+        for(j = 0; j < GRID_SIZE; j++) {
+            document.write('<span class="cell">'+i+j+'</span>');
+        } 
+        document.write('</div>');
+    }
+    </script>
+</body>
+</html>
