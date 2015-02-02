@@ -1,5 +1,4 @@
 GRID_SIZE = 9;
-NUM_OF_BOATS = 5;
 
 SHIPS = [
     {shipType: "Aircraft carrier", shipSize: 5},
@@ -12,6 +11,14 @@ SHIPS = [
 
 function AppViewModel() {
     this.instructions = ko.observable("Place ships:");
+    this.placedShips = ko.observable(0);
+    this.placedShips.increment = function() {
+        // felsook jao
+        console.log(this);
+        console.log(this());
+        this(this() + 1);
+        console.log(this());
+    };
 
     this.ships = [];
     for(i = 0; i < SHIPS.length; i++)
@@ -22,8 +29,16 @@ my = {viewModel: new AppViewModel()};
 
 ko.bindingHandlers.strikeShip = {
     update: function(element, valueAccessor) {
-        if (valueAccessor())
+        if (valueAccessor()) {
             $(element).addClass("strikeout");
+            ko.contextFor(element).$root.placedShips.increment();
+        }
+    }
+}
+
+ko.bindingHandlers.toggleButton = {
+    update: function(element, valueAccessor) {
+        $(element).prop("disabled", !valueAccessor().enable);
     }
 }
 
@@ -48,7 +63,7 @@ var buttonClickHandler = function(event) {
 
 var getRandBoatPos = function() {
     var boats = [];
-    for(i = 0; i < NUM_OF_BOATS; i++) {
+    for(i = 0; i < SHIPS.length; i++) {
         a = (Math.floor(Math.random() * GRID_SIZE));
         b = (Math.floor(Math.random() * GRID_SIZE));
         boats[''+a+b] = true;

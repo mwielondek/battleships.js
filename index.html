@@ -24,7 +24,7 @@
             <ul data-bind="foreach: ships">
                 <li data-bind="text: ship.shipType, strikeShip: placed()"></li>
             </ul>
-            <button data-bind="click: play">Play</button><br />        
+            <button data-bind="toggleButton: {enable: placedShips() == SHIPS.length}">Play</button><br />        
         </div>
     </div>
 </body>
