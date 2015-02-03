@@ -13,16 +13,15 @@ function AppViewModel() {
     this.instructions = ko.observable("Place ships:");
     this.placedShips = ko.observable(0);
     this.placedShips.increment = function() {
-        // felsook jao
-        console.log(this);
-        console.log(this());
-        this(this() + 1);
-        console.log(this());
+        // avoid registering dependency by using peek
+        this(this.peek()+1);
     };
 
     this.ships = [];
     for(i = 0; i < SHIPS.length; i++)
         this.ships.push({ship: SHIPS[i], placed: ko.observable(false)});
+    for(i = 0; i < SHIPS.length; i++)
+        this.ships[i].placed.subscribe(function(newValue) {console.log("sub newV:",newValue);})
 
 }
 my = {viewModel: new AppViewModel()};
