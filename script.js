@@ -20,8 +20,10 @@ function AppViewModel() {
     this.ships = [];
     for(i = 0; i < SHIPS.length; i++)
         this.ships.push({ship: SHIPS[i], placed: ko.observable(false)});
-    for(i = 0; i < SHIPS.length; i++)
-        this.ships[i].placed.subscribe(function(newValue) {console.log("sub newV:",newValue);})
+    
+    this.play = function() {
+        console.log("STARTING THE GAME");
+    }
 
 }
 my = {viewModel: new AppViewModel()};
@@ -35,16 +37,9 @@ ko.bindingHandlers.strikeShip = {
     }
 }
 
-ko.bindingHandlers.toggleButton = {
-    update: function(element, valueAccessor) {
-        $(element).prop("disabled", !valueAccessor().enable);
-    }
-}
 
 $(document).ready(function() {
-    $("input#play").prop("disabled", true);
     $("div#container").on("click", "span.cell", buttonClickHandler);
-    boats = getRandBoatPos();
 
     // Activate knockout.js
     ko.applyBindings(my.viewModel);
@@ -55,17 +50,4 @@ var buttonClickHandler = function(event) {
 
     // change color
     $(this).addClass(boats[id] ? "hit" : "miss");
-
-    // update text field
-    $("input#displayID").val(id);
-}
-
-var getRandBoatPos = function() {
-    var boats = [];
-    for(i = 0; i < SHIPS.length; i++) {
-        a = (Math.floor(Math.random() * GRID_SIZE));
-        b = (Math.floor(Math.random() * GRID_SIZE));
-        boats[''+a+b] = true;
-    }
-    return boats;
 }

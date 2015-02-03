@@ -50,3 +50,7 @@ span.marked {
 button {
     width: 100%;
 }
+
+ul {
+    padding-left: 20px;
+}
