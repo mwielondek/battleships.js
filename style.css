@@ -42,6 +42,10 @@ span.valid {
     background-color: green;
 }
 
+span.placed {
+    background-color: gray;
+}
+
 .highlight {
     color: #FCAE4F;
 }

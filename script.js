@@ -25,14 +25,13 @@ function AppViewModel() {
     });
     this.rangeLength = ko.observable(0);
 
-    boats = [];
-    boats[11] = true;
+    shipPos = [];
     
     this.play = function() {
         // remove hover handler and rebind the click handler
         $("div#container").off().on("click", "span.cell", clickHandlerPlay);
         // hide ships
-        $("div#container").find("span.cell").removeClass("hit miss");
+        $("div#container").find("span.cell").removeClass("placed miss hit");
     };
 
 }
@@ -58,11 +57,37 @@ $(document).ready(function() {
 clickHandlerPlace = {
     start: null,
     current: null,
+    range: [],
     click: function() {
         var self = this;
         $("div#container").on("mouseenter mouseleave", "span.cell", self.hover());
         return function(event) {
             self.start = self.start ? null : this.id;
+            var rangeLen = self.range.length;
+            if (!self.start && rangeIsValid(rangeLen)) {
+                // player just placed ship
+                // add ship position
+                for (var i in self.range) {
+                    shipPos[self.range[i]] = true;
+                }
+                
+                // remove size from pendinding sizes
+                var arr = my.viewModel.ships.pendingSizes;
+                arr.splice(arr.indexOf(rangeLen), 1);
+
+                // mark ship as placed
+                for (var i = 0; i < my.viewModel.ships.length; i++) {
+                    var ship = my.viewModel.ships[i];
+                    if (ship.placed.peek()) continue;
+                    if (ship.ship.shipSize == rangeLen) {
+                        ship.placed(true);
+                        rangeAddClass(self.range, "placed");
+                        break;
+                    }
+                }
+            } else {
+                $("span.cell").removeClass("miss valid");
+            }
         };
     },
     hover: function() {
@@ -75,19 +100,13 @@ clickHandlerPlace = {
             if (this.id[0].indexOf(self.start[0]) !== -1 || 
                 this.id[1].indexOf(self.start[1]) !== -1) {
                 // unary plus to convert str -> num
-                var range = getCellRange(+self.start, +this.id);
-                my.viewModel.rangeLength(range.length);
+                self.range = getCellRange(+self.start, +this.id);
+                my.viewModel.rangeLength(self.range.length);
                 
-                var id, validRangeLength;
-                validRangeLength = my.viewModel.ships.pendingSizes.indexOf(range.length) !== -1;
+                var id;
                 
                 $("span.cell").removeClass("miss valid");
-                for (var i = 0; i < range.length; i++) {
-                    id = range[i].toString();
-                    if (id.length < 2)
-                        id = 0+id;
-                    $("span.cell#"+id).addClass(validRangeLength ? "valid" : "miss");
-                }
+                rangeAddClass(self.range, rangeIsValid(self.range.length) ? "valid" : "miss");
             } else {
                 my.viewModel.rangeLength(0);
                 $("span.cell").removeClass("miss valid");
@@ -100,7 +119,7 @@ clickHandlerPlay = function(event) {
     var id = this.id;
 
     // change color
-    $(this).addClass(boats[id] ? "hit" : "miss");
+    $(this).addClass(shipPos[id] ? "hit" : "miss");
 }
 
 getCellRange = function(start, end) {
@@ -123,4 +142,17 @@ getCellRange = function(start, end) {
     // otherwise horizontal range
     res = ko.utils.range(start, end);
     return res;
+}
+
+rangeIsValid = function(rangeLen) {
+    return my.viewModel.ships.pendingSizes.indexOf(rangeLen) !== -1;
+}
+
+rangeAddClass = function(range, cssClass) {
+    for (var i = 0; i < range.length; i++) {
+        var id = range[i].toString();
+        if (id.length < 2)
+            id = 0+id;
+        $("span.cell#"+id).addClass(cssClass);
+    }
 }
