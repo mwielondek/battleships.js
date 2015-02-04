@@ -8,208 +8,218 @@ SHIPS = [
     {shipType: "Patrol boat", shipSize: 2}
 ]
 
-
-function AppViewModel() {
+// Knockout.js stuff
+var AppViewModel = function() {
+    // Observables
     this.instructions = ko.observable("Place ships:");
     this.mode = ko.observable("PLACE");
     this.placedShips = ko.observable(0);
-    this.increment = function(observable) {
-        // avoid registering dependency by using peek
-        observable(observable.peek()+1);
-    };
-
-    this.ships = [];
-    for(i = 0; i < SHIPS.length; i++)
-        this.ships.push({ship: SHIPS[i], placed: ko.observable(false)});
-    this.ships.pendingSizes = ko.utils.arrayMap(this.ships, function(el) {
-        return el.ship.shipSize;
-    });
-    this.rangeLength = ko.observable(0);
-
-    shipPos = [];
-    shipPos.getNumOfCells = function() {
-        // cached for better perf.
-        var res = this.numOfCells || null;
-        if (res) return res;
-        this.numOfCells = ko.utils.arrayFilter(shipPos, function(el) {
-            return el;
-        }).length;
-        return this.numOfCells;
-    };
-    
-    this.play = function() {
-        // remove hover handler and rebind the click handler
-        $("div#container").off().on("click", "span.cell", clickHandlerPlay);
-        // hide ships
-        $("div#container").find("span.cell").removeClass("placed valid miss");
-        this.instructions("PLAY!");
-        this.mode("PLAY");
-    };
-
     this.hits = ko.observable(0);
     this.shots = ko.observable(0);
+    this.range = ko.observableArray([]);
+    this.rangeLength = ko.computed(function() {
+        return this.range().length;
+    }, this);
     this.accuracy = ko.computed(function() {
         if (this.shots() < 1) return 0;
         return Math.floor(this.hits()/this.shots() * 100);
     }, this);
 
+    // Other variables
+    this.ships = [];
+    this.shipPos = [];
+
+    for(i = 0; i < SHIPS.length; i++)
+        this.ships.push({ship: SHIPS[i], placed: ko.observable(false)});
+    this.ships.pendingSizes = ko.utils.arrayMap(this.ships, function(el) {
+        return el.ship.shipSize;
+    });
+
+    // Click functions
+    this.play = function() {
+        // remove hover handler and rebind the click handler
+        $("div#container").off().on("click", "span.cell", eventHandlers.play);
+        // hide ships
+        $("div#container").find("span.cell").removeClass("placed valid miss");
+        // enter play mode
+        this.instructions("PLAY!");
+        this.mode("PLAY");
+    };
+
     this.playAgain = function() {
         // reset
         location.reload();
-    }
+    };
 
+    // Custom binding handlers
+    ko.bindingHandlers.strike = {
+        update: function(element, valueAccessor) {
+            if (valueAccessor()) {
+                $(element).addClass("strikeout");
+                var rootContext = ko.contextFor(element).$root;
+                rootContext.increment(rootContext.placedShips);
+            }
+        }
+    };
+
+    // Helper functions
+    this.increment = function(observable) {
+        // avoid registering dependency by using peek
+        observable(observable.peek()+1);
+    };
+
+    this.shipPos.getNumOfCells = function() {
+        // cached for better perf.
+        var res = this.getNumOfCells.cache || null;
+        if (res) return res;
+        this.getNumOfCells.cache = ko.utils.arrayFilter(this, function(el) {
+            return el;
+        }).length;
+        return this.getNumOfCells.cache;
+    };   
 }
-my = {viewModel: new AppViewModel()};
+// create globally accessible ref to the view model
+viewModel = new AppViewModel();
 
-ko.bindingHandlers.strike = {
-    update: function(element, valueAccessor) {
-        if (valueAccessor()) {
-            $(element).addClass("strikeout");
-            var rootContext = ko.contextFor(element).$root;
-            rootContext.increment(rootContext.placedShips);
+// Click/hover handlers
+var eventHandlers = {
+    place: {
+        start: null,
+        range: viewModel.range,
+        click: function() {
+            var self = this;
+            $("div#container").on("mouseenter mouseleave", "span.cell", self.hover());
+            return function(event) {
+                // set starting cell or reset on subsequent click
+                self.start = self.start ? null : this.id;
+                var rangeLen = viewModel.rangeLength.peek();
+                if (!self.start && rangeUtils.isValid(rangeLen)) {
+                    // Player just placed ship
+                    
+                    // add ship position
+                    for (var i in self.range()) {
+                        viewModel.shipPos[self.range()[i]] = true;
+                    }
+                    // remove range length from pendinding sizes
+                    var ps = viewModel.ships.pendingSizes;
+                    ps.splice(ps.indexOf(rangeLen), 1);
+                    // mark next ship with fitting size as placed
+                    for (var i in viewModel.ships) {
+                        var ship = viewModel.ships[i];
+                        if (ship.placed.peek()) continue;
+                        if (ship.ship.shipSize == rangeLen) {
+                            ship.placed(true);
+                            rangeUtils.addClass(self.range(), "placed");
+                            break;
+                        }
+                    }
+                    // clean up
+                    self.range.removeAll();
+                }
+                // always clear 'temp' styles on click
+                $("span.cell").removeClass("miss valid hit");
+            };
+        },
+        hover: function() {
+            var self = this;
+            return function(event) {
+                // don't do anything if start cell hasn't been chosen
+                if (!self.start) return;
+                // check if cell is in the same row/column
+                if (this.id[0].indexOf(self.start[0]) !== -1 || 
+                    this.id[1].indexOf(self.start[1]) !== -1) {
+                    // unary plus to convert str -> num
+                    self.range(rangeUtils.getCellRange(+self.start, +this.id));
+                    // check if range corresponds to a yet-to-be-placed ship
+                    var cssClass = rangeUtils.isValid(self.range().length) ? "valid" : "miss";
+                    // check if new range doesnt collide with already placed ships
+                    var collision = false;
+                    for (var i in self.range()) {
+                        if (viewModel.shipPos[self.range()[i]]) {
+                            cssClass = "hit";
+                            collision = true;
+                            break;
+                        }
+                    }
+                    // reset cell coloring
+                    $("span.cell").removeClass("miss valid hit");
+                    rangeUtils.addClass(self.range(), cssClass);
+                    // disallow placing ship if it collides with another
+                    if (collision)
+                        self.range([]);
+                } else {
+                    self.range.removeAll();
+                    $("span.cell").removeClass("miss valid hit");
+                }
+            };
+        } 
+    },
+
+    play: function(event) {
+        // don't coutn already clicked cells
+        if ($(this).hasClass("hit") || $(this).hasClass("miss"))
+            return;        
+        var id = this.id;
+        var hit = viewModel.shipPos[+id];
+        // increment hits and shots
+        viewModel.increment(viewModel.shots);
+        if (hit) {
+            viewModel.increment(viewModel.hits);
+            if (viewModel.hits() == viewModel.shipPos.getNumOfCells()) {
+                // game over!
+                viewModel.instructions("You win! Such amaze! Wow!");
+                viewModel.mode("FINISHED");
+                // unbind event handlers
+                $("div#container").off();
+            }
+        }
+        // change color of the cell
+        $(this).addClass(hit ? "hit" : "miss");
+    }
+}
+
+// Range utils
+var rangeUtils = {
+    getCellRange: function(start, end) {
+        // swap if start > end
+        if (start > end) {
+            var t = start;
+            start = end;
+            end = t;
+        }
+        var res = [];
+        if (end - start > GRID_SIZE-1) {
+            // vertical range
+            for (; start <= end;) {
+                res.push(start);
+                start += 10;
+            }
+            return res;
+        }
+        // otherwise horizontal range
+        return ko.utils.range(start, end);
+    },
+
+    isValid: function(rangeLen) {
+        return viewModel.ships.pendingSizes.indexOf(rangeLen) !== -1;
+    },
+
+    addClass: function(range, cssClass) {
+        for (var i = 0; i < range.length; i++) {
+            var id = range[i].toString();
+            // add padding zero if necessary
+            if (id.length < 2)
+                id = 0+id;
+            $("span.cell#"+id).addClass(cssClass);
         }
     }
 }
 
 
 $(document).ready(function() {
-    $("div#container").on("click", "span.cell", clickHandlerPlace.click());
+    // activate click handler
+    $("div#container").on("click", "span.cell", eventHandlers.place.click());
 
-    // Activate knockout.js
-    ko.applyBindings(my.viewModel);
+    // activate knockout.js
+    ko.applyBindings(viewModel);
 });
-
-clickHandlerPlace = {
-    start: null,
-    current: null,
-    range: [],
-    click: function() {
-        var self = this;
-        $("div#container").on("mouseenter mouseleave", "span.cell", self.hover());
-        return function(event) {
-            self.start = self.start ? null : this.id;
-            var rangeLen = my.viewModel.rangeLength.peek();
-            if (!self.start && rangeIsValid(rangeLen)) {
-                // player just placed ship
-                
-                // add ship position
-                for (var i in self.range) {
-                    shipPos[self.range[i]] = true;
-                }
-                
-                // remove size from pendinding sizes
-                var arr = my.viewModel.ships.pendingSizes;
-                arr.splice(arr.indexOf(rangeLen), 1);
-
-                // mark ship as placed
-                for (var i = 0; i < my.viewModel.ships.length; i++) {
-                    var ship = my.viewModel.ships[i];
-                    if (ship.placed.peek()) continue;
-                    if (ship.ship.shipSize == rangeLen) {
-                        ship.placed(true);
-                        rangeAddClass(self.range, "placed");
-                        break;
-                    }
-                }
-
-                // clean up
-                self.range = [];
-                my.viewModel.rangeLength(0);
-            }
-            $("span.cell").removeClass("miss valid hit");
-        };
-    },
-    hover: function() {
-        var self = this;
-        return function(event) {
-            if (!self.start) return;
-            self.current = this.id;
-            
-            // check if cell is in the same row/column
-            if (this.id[0].indexOf(self.start[0]) !== -1 || 
-                this.id[1].indexOf(self.start[1]) !== -1) {
-                // unary plus to convert str -> num
-                self.range = getCellRange(+self.start, +this.id);
-
-                var cssClass = rangeIsValid(self.range.length) ? "valid" : "miss";
-
-                // check if new range doesnt collide
-                // with already placed ships
-                var collision = false;
-                for (var i in self.range) {
-                    if (shipPos[self.range[i]]) {
-                        cssClass = "hit";
-                        collision = true;
-                        break;
-                    }
-                }
-
-                my.viewModel.rangeLength(collision ? 0 : self.range.length);
-                
-                $("span.cell").removeClass("miss valid hit");
-                rangeAddClass(self.range, cssClass);
-            } else {
-                self.range = [];
-                my.viewModel.rangeLength(0);
-                $("span.cell").removeClass("miss valid hit");
-            }
-        };
-    } 
-};
-
-clickHandlerPlay = function(event) {
-    if ($(this).hasClass("hit") || $(this).hasClass("miss"))
-        return;
-    
-    var id = this.id;
-    var hit = shipPos[+id];
-    // inc hits and shots
-    my.viewModel.increment(my.viewModel.shots);
-    if (hit) {
-        my.viewModel.increment(my.viewModel.hits);
-        if (my.viewModel.hits() == shipPos.getNumOfCells()) {
-            // game over!
-            my.viewModel.instructions("You win! Such amaze! Wow!");
-            my.viewModel.mode("FINISHED");
-            $("div#container").off();
-        }
-    }
-
-    // change color
-    $(this).addClass(hit ? "hit" : "miss");
-}
-
-getCellRange = function(start, end) {
-    // sort
-    if (start > end) {
-        var t = start;
-        start = end;
-        end = t;
-    }
-    var res = [];
-    var diff = end - start;
-    if (diff > GRID_SIZE-1) {
-        // vertical range
-        for (; start <= end;) {
-            res.push(start);
-            start += 10;
-        }
-        return res;
-    }
-    // otherwise horizontal range
-    res = ko.utils.range(start, end);
-    return res;
-}
-
-rangeIsValid = function(rangeLen) {
-    return my.viewModel.ships.pendingSizes.indexOf(rangeLen) !== -1;
-}
-
-rangeAddClass = function(range, cssClass) {
-    for (var i = 0; i < range.length; i++) {
-        var id = range[i].toString();
-        if (id.length < 2)
-            id = 0+id;
-        $("span.cell#"+id).addClass(cssClass);
-    }
-}
