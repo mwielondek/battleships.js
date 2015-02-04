@@ -31,7 +31,7 @@ function AppViewModel() {
         // remove hover handler and rebind the click handler
         $("div#container").off().on("click", "span.cell", clickHandlerPlay);
         // hide ships
-        $("div#container").find("span.cell").removeClass("placed miss hit");
+        $("div#container").find("span.cell").removeClass("placed valid miss");
     };
 
 }
@@ -66,6 +66,7 @@ clickHandlerPlace = {
             var rangeLen = self.range.length;
             if (!self.start && rangeIsValid(rangeLen)) {
                 // player just placed ship
+                
                 // add ship position
                 for (var i in self.range) {
                     shipPos[self.range[i]] = true;
@@ -85,9 +86,12 @@ clickHandlerPlace = {
                         break;
                     }
                 }
-            } else {
-                $("span.cell").removeClass("miss valid");
+
+                // clean up
+                self.range = [];
+                my.viewModel.rangeLength(0);
             }
+            $("span.cell").removeClass("miss valid");
         };
     },
     hover: function() {
@@ -108,6 +112,7 @@ clickHandlerPlace = {
                 $("span.cell").removeClass("miss valid");
                 rangeAddClass(self.range, rangeIsValid(self.range.length) ? "valid" : "miss");
             } else {
+                self.range = [];
                 my.viewModel.rangeLength(0);
                 $("span.cell").removeClass("miss valid");
             }
