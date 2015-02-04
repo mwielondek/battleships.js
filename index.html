@@ -13,7 +13,7 @@
                 for(i = 0; i < GRID_SIZE; i++) {
                     document.write('<div class="row">');
                     for(j = 0; j < GRID_SIZE; j++) {
-                        document.write('<span class="cell" id="'+i+j+'">'+i+j+'</span>');
+                        document.write('<span class="cell" id="'+i+j+'"></span>');
                     } 
                     document.write('</div>');
                 }
@@ -21,10 +21,18 @@
         </div>
         <div id="controls">
             <p><strong data-bind="text: instructions"></strong></p>
-            <ul data-bind="foreach: ships">
-                <li data-bind="text: ship.shipType+' ('+ship.shipSize+')', strike: placed(), css: { highlight: $root.rangeLength() == ship.shipSize && !placed()}"></li>
-            </ul>
-            <button data-bind="enable: placedShips() == SHIPS.length, click: play">Play</button><br />        
+            <div data-bind="visible: mode() == 'PLACE'">
+                <ul data-bind="foreach: ships">
+                    <li data-bind="text: ship.shipType+' ('+ship.shipSize+')', strike: placed(), css: { highlight: $root.rangeLength() == ship.shipSize && !placed()}"></li>
+                </ul>
+                <button data-bind="enable: placedShips() == SHIPS.length, click: play">Play</button><br />
+            </div>
+            <div data-bind="visible: mode() !== 'PLACE'">
+                <p>Hits: <strong data-bind="text: hits()"></strong></p>
+                <p>Shots: <strong data-bind="text: shots()"></strong></p>
+                <p>Accuracy: <strong data-bind="text: accuracy()+'%'"></strong></p>
+                <button data-bind="visible: mode() == 'FINISHED', click: playAgain">Play again</button>
+            </div>
         </div>
     </div>
 </body>
