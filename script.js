@@ -91,7 +91,7 @@ clickHandlerPlace = {
                 self.range = [];
                 my.viewModel.rangeLength(0);
             }
-            $("span.cell").removeClass("miss valid");
+            $("span.cell").removeClass("miss valid hit");
         };
     },
     hover: function() {
@@ -105,16 +105,27 @@ clickHandlerPlace = {
                 this.id[1].indexOf(self.start[1]) !== -1) {
                 // unary plus to convert str -> num
                 self.range = getCellRange(+self.start, +this.id);
+
+                var cssClass = rangeIsValid(self.range.length) ? "valid" : "miss";
+
+                // check if new range doesnt collide
+                // with already placed ships
+                for (var i in self.range) {
+                    if (shipPos[self.range[i]]) {
+                        console.log("collision");
+                        cssClass = "hit";
+                        break;
+                    }
+                }
+
                 my.viewModel.rangeLength(self.range.length);
                 
-                var id;
-                
-                $("span.cell").removeClass("miss valid");
-                rangeAddClass(self.range, rangeIsValid(self.range.length) ? "valid" : "miss");
+                $("span.cell").removeClass("miss valid hit");
+                rangeAddClass(self.range, cssClass);
             } else {
                 self.range = [];
                 my.viewModel.rangeLength(0);
-                $("span.cell").removeClass("miss valid");
+                $("span.cell").removeClass("miss valid hit");
             }
         };
     } 
