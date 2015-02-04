@@ -20,6 +20,10 @@ function AppViewModel() {
     this.ships = [];
     for(i = 0; i < SHIPS.length; i++)
         this.ships.push({ship: SHIPS[i], placed: ko.observable(false)});
+    this.ships.pendingSizes = ko.utils.arrayMap(this.ships, function(el) {
+        return el.ship.shipSize;
+    });
+    this.rangeLength = ko.observable(0);
 
     boats = [];
     boats[11] = true;
@@ -34,7 +38,7 @@ function AppViewModel() {
 }
 my = {viewModel: new AppViewModel()};
 
-ko.bindingHandlers.strikeShip = {
+ko.bindingHandlers.strike = {
     update: function(element, valueAccessor) {
         if (valueAccessor()) {
             $(element).addClass("strikeout");
@@ -56,7 +60,7 @@ clickHandlerPlace = {
     current: null,
     click: function() {
         var self = this;
-        $("div#container").on("mouseenter", "span.cell", self.hover());
+        $("div#container").on("mouseenter mouseleave", "span.cell", self.hover());
         return function(event) {
             self.start = self.start ? null : this.id;
         };
@@ -66,16 +70,27 @@ clickHandlerPlace = {
         return function(event) {
             if (!self.start) return;
             self.current = this.id;
+            
+            // check if cell is in the same row/column
             if (this.id[0].indexOf(self.start[0]) !== -1 || 
                 this.id[1].indexOf(self.start[1]) !== -1) {
+                // unary plus to convert str -> num
                 var range = getCellRange(+self.start, +this.id);
-                var id;
+                my.viewModel.rangeLength(range.length);
+                
+                var id, validRangeLength;
+                validRangeLength = my.viewModel.ships.pendingSizes.indexOf(range.length) !== -1;
+                
+                $("span.cell").removeClass("miss valid");
                 for (var i = 0; i < range.length; i++) {
                     id = range[i].toString();
                     if (id.length < 2)
                         id = 0+id;
-                    $("span.cell#"+id).addClass("miss");
+                    $("span.cell#"+id).addClass(validRangeLength ? "valid" : "miss");
                 }
+            } else {
+                my.viewModel.rangeLength(0);
+                $("span.cell").removeClass("miss valid");
             }
         };
     } 

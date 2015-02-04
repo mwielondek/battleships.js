@@ -38,8 +38,12 @@ span.hit {
     background-color: red;
 }
 
-span.marked {
-    background-color: gray;
+span.valid {
+    background-color: green;
+}
+
+.highlight {
+    color: #FCAE4F;
 }
 
 .strikeout {

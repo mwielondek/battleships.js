@@ -22,7 +22,7 @@
         <div id="controls">
             <p><strong data-bind="text: instructions"></strong></p>
             <ul data-bind="foreach: ships">
-                <li data-bind="text: ship.shipType+' ('+ship.shipSize+')', strikeShip: placed()"></li>
+                <li data-bind="text: ship.shipType+' ('+ship.shipSize+')', strike: placed(), css: { highlight: $root.rangeLength() == ship.shipSize && !placed()}"></li>
             </ul>
             <button data-bind="enable: placedShips() == SHIPS.length, click: play">Play</button><br />        
         </div>
